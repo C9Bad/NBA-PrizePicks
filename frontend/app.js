@@ -41,6 +41,9 @@ async function getTeamLogo(abbreviation) {
         return teamLogoCache.get(abbreviation);
     }
     
+    if (abbreviation == "UTA")
+        abbreviation = "UTAH";
+
     const logoUrl = `https://a.espncdn.com/i/teamlogos/nba/500/${abbreviation}.png`;
     teamLogoCache.set(abbreviation, logoUrl);
     return logoUrl;
