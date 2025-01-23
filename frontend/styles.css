@@ -172,10 +172,120 @@ label {
     display: block;
 }
 
+.game-info-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    gap: 20px;
+    overflow: hidden;
+}
+
+.team-info {
+    flex: 1;
+    text-align: center;
+    padding: 15px;
+    min-width: 0;
+}
+
+.game-details {
+    flex: 1;
+    text-align: center;
+    padding: 0 20px;
+    min-width: 0;
+}
+
+.team-logo {
+    width: 80px; /* Default size */
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.team-name {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--primary);
+    white-space: nowrap; /* Prevent text from wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis if text overflows */
+}
+
+.team-score {
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.game-status {
+    font-size: 1.2em;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.game-clock {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.game-period {
+    font-size: 1.2em;
+    color: #bbbbbb;
+}
+
+/* Mobile adjustments */
 @media (max-width: 600px) {
-    #betForm {
-        width: 90%;
-        right: 5%;
-        bottom: 120px;
+    .game-info-container {
+        padding: 15px;
+        gap: 10px; /* Reduce gap for smaller screens */
+    }
+
+    .team-logo {
+        width: 65px; /* Smaller logo on mobile */
+        height: 65px;
+    }
+
+    .team-name {
+        font-size: 1rem; /* Smaller font size */
+    }
+
+    .team-score {
+        font-size: 1.5rem; /* Smaller font size */
+    }
+
+    .game-clock {
+        font-size: 1.8rem; /* Smaller font size */
+    }
+
+    .game-period {
+        font-size: 1rem; /* Smaller font size */
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+    .team-logo {
+        width: 50px; /* Even smaller logo */
+        height: 50px;
+    }
+
+    .team-name {
+        font-size: 0.9rem; /* Smaller font size */
+    }
+
+    .team-score {
+        font-size: 1.3rem; /* Smaller font size */
+    }
+
+    .game-clock {
+        font-size: 1.5rem; /* Smaller font size */
+    }
+
+    .game-period {
+        font-size: 0.9rem; /* Smaller font size */
     }
 }

@@ -3,23 +3,36 @@
 
 <head>
     <title>NBA Bet Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <h1>🏀 NBA PrizePicks Watcher</h1>
 
+    <div class="game-info-container">
+        <div class="team-info away-team">
+            <img class="team-logo" id="awayTeamLogo" src="" alt="Away Team Logo">
+            <h2 class="team-name" id="awayTeamName">-</h2>
+            <div class="team-score" id="awayTeamScore">-</div>
+        </div>
+
+        <div class="game-details">
+            <div class="game-status" id="gameStatus">-</div>
+            <div class="game-clock" id="gameClock">-</div>
+            <div class="game-period" id="gamePeriod">-</div>
+        </div>
+
+        <div class="team-info home-team">
+            <img class="team-logo" id="homeTeamLogo" src="" alt="Home Team Logo">
+            <h2 class="team-name" id="homeTeamName">-</h2>
+            <div class="team-score" id="homeTeamScore">-</div>
+        </div>
+    </div>
+
     <div>
         <label for="gameSelect">Select Game:</label>
         <select id="gameSelect"></select>
-    </div>
-
-    <div id="teamDisplay" style="display: none;">
-        <h3>Teams & Players</h3>
-        <div class="team-players">
-            <div class="player-list" id="awayPlayers"></div>
-            <div class="player-list" id="homePlayers"></div>
-        </div>
     </div>
 
     <form id="betForm">
@@ -55,6 +68,7 @@
     <div class="overlay"></div>
 
     <script src="app.js"></script>
+
 </body>
 
 </html>

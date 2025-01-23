@@ -35,13 +35,13 @@ async def get_ongoing_games():
     games_data = data["scoreboard"]["games"]
     
     # Use the scoreboard's gameDate instead of current date
-    scoreboard_date = data["scoreboard"]["gameDate"]  # "2025-01-22" from the response
+    scoreboard_date = data["scoreboard"]["gameDate"]
     eastern = pytz.timezone("US/Eastern")
 
     games_list = []
     for g in games_data:
-        if g["gameStatus"] == 0:
-            continue
+        # if g["gameStatus"] != 2:
+        #     return
 
         # Parse gameEt to check if it matches scoreboard date
         try:
@@ -55,8 +55,14 @@ async def get_ongoing_games():
             "gameId": g["gameId"],
             "homeTeam": g["homeTeam"]["teamName"],
             "awayTeam": g["awayTeam"]["teamName"],
+            "homeAbbreviation": g["homeTeam"]["teamTricode"],  # e.g. "BOS"
+            "awayAbbreviation": g["awayTeam"]["teamTricode"],  # e.g. "LAL"
             "status": g["gameStatus"],
-            "gameTimeET": game_time_et.strftime("%I:%M %p")
+            "gameTimeET": game_time_et.strftime("%I:%M %p"),
+            "homeScore": g["homeTeam"]["score"],
+            "awayScore": g["awayTeam"]["score"],
+            "period": g["period"],
+            "gameClock": g["gameClock"]
         })
 
     status_priority = {2: 0, 3: 1, 1: 2}

@@ -2,12 +2,18 @@ const gameSelect = document.getElementById("gameSelect");
 const playerSelect = document.getElementById("playerSelect");
 const betForm = document.getElementById("betForm");
 const trackerQueue = document.getElementById("trackerQueue");
-const teamDisplay = document.getElementById("teamDisplay");
-const awayPlayers = document.getElementById("awayPlayers");
-const homePlayers = document.getElementById("homePlayers");
 const activeTrackers = new Map();
 const fab = document.getElementById("fab");
 const overlay = document.querySelector('.overlay');
+const awayTeamName = document.getElementById("awayTeamName");
+const awayTeamScore = document.getElementById("awayTeamScore");
+const homeTeamName = document.getElementById("homeTeamName");
+const homeTeamScore = document.getElementById("homeTeamScore");
+const gameStatus = document.getElementById("gameStatus");
+const gameClock = document.getElementById("gameClock");
+const gamePeriod = document.getElementById("gamePeriod");
+const awayTeamLogo = document.getElementById("awayTeamLogo");
+const homeTeamLogo = document.getElementById("homeTeamLogo");
 
 async function loadPlayers(gameId) {
     try {
@@ -18,30 +24,46 @@ async function loadPlayers(gameId) {
             [...players.homeTeamPlayers, ...players.awayTeamPlayers]
             .map(player => `<option value="${player}">${player}</option>`)
             .join('');
-
-        awayPlayers.innerHTML = `
-            <h4>Away Team Players</h4>
-            <ul>${players.awayTeamPlayers.map(p => `<li>${p}</li>`).join('')}</ul>
-        `;
-        homePlayers.innerHTML = `
-            <h4>Home Team Players</h4>
-            <ul>${players.homeTeamPlayers.map(p => `<li>${p}</li>`).join('')}</ul>
-        `;
-        teamDisplay.style.display = 'block';
-
     } catch (err) {
         console.error("Error loading players:", err);
     }
+}
+
+function getTeamLogoUrl(abbreviation) {
+    return `https://a.espncdn.com/i/teamlogos/nba/500/${abbreviation}.png`;
+}
+
+function updateGameDisplay(game) {
+    // Update team names and scores
+    awayTeamName.textContent = game.awayTeam;
+    awayTeamScore.textContent = game.awayScore;
+    homeTeamName.textContent = game.homeTeam;
+    homeTeamScore.textContent = game.homeScore;
+
+    // Update logos
+    awayTeamLogo.src = getTeamLogoUrl(game.awayAbbreviation);
+    homeTeamLogo.src = getTeamLogoUrl(game.homeAbbreviation);
+
+    // Update game status and time
+    gameStatus.textContent = {
+        1: "Scheduled",
+        2: "🟢 LIVE",
+        3: "🏁 Final"
+    }[game.status] || "Unknown";
+    gameClock.textContent = game.gameClock || '-';
+    gamePeriod.textContent = `${game.period}Q` || '-';
 }
 
 async function loadGames() {
     try {
         const res = await fetch("http://localhost:8000/games");
         const games = await res.json();
+        window.games = games;
 
         gameSelect.innerHTML = games.length ? "" : 
             `<option value="">No games found for today</option>`;
 
+        // Populate game select dropdown
         games.forEach(g => {
             const option = document.createElement("option");
             option.value = g.gameId;
@@ -50,13 +72,23 @@ async function loadGames() {
                 2: "🟢 LIVE",
                 3: "🏁 Final"
             }[g.status] || "Unknown";
+
             option.textContent = `${statusText} | ${g.awayTeam} vs ${g.homeTeam}`;
             gameSelect.appendChild(option);
         });
 
+        // Show first game by default
+        if (games.length > 0) {
+            updateGameDisplay(games[0]);
+            await loadPlayers(games[0].gameId);
+        }
+
+        // Handle game selection changes
         gameSelect.addEventListener('change', async (e) => {
-            if (e.target.value) {
-                await loadPlayers(e.target.value);
+            const selectedGame = window.games.find(g => g.gameId === e.target.value);
+            if (selectedGame) {
+                updateGameDisplay(selectedGame);
+                await loadPlayers(selectedGame.gameId);
             }
         });
 
@@ -128,12 +160,11 @@ async function fetchBetStatus(betData) {
     }
 }
 
+// Floating action button handlers
 fab.addEventListener('click', () => {
     betForm.classList.toggle('visible');
     overlay.classList.toggle('visible');
-    if (betForm.classList.contains('visible')) {
-        betForm.reset();
-    }
+    betForm.classList.contains('visible') && betForm.reset();
 });
 
 overlay.addEventListener('click', () => {
@@ -141,6 +172,7 @@ overlay.addEventListener('click', () => {
     overlay.classList.remove('visible');
 });
 
+// Form submission handler
 betForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const formData = new FormData(betForm);
@@ -163,4 +195,5 @@ betForm.addEventListener("submit", (e) => {
     overlay.classList.remove('visible');
 });
 
+// Initial load
 loadGames();
