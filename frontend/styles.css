@@ -82,6 +82,127 @@ form {
     border: 3px solid #ccc;
 }
 
+.quarter-tabs {
+    margin: 10px 0;
+    display: flex;
+    gap: 5px;
+}
+
+.quarter-button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    background: #f0f0f0;
+    cursor: pointer;
+}
+
+.quarter-button.active {
+    background: #007bff;
+    color: white;
+}
+
+.quarter-content {
+    display: none;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.quarter-content.active {
+    display: block;
+}
+
+#playByPlayContainer h3 {
+    margin-top: 20px;
+    color: #666;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.quarter-content {
+    display: none;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--surface);
+    border-radius: 8px;
+    margin: 10px 0;
+    border: 1px solid #333;
+}
+
+.quarter-content.active {
+    display: block;
+}
+
+.play-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin: 8px 0;
+    background: #2a2a2a;
+    border-radius: 8px;
+    border: 1px solid #333;
+    gap: 12px;
+}
+
+.team-logo-small {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.play-details {
+    flex-grow: 1;
+}
+
+.play-time {
+    color: #bb86fc;
+    font-size: 0.9em;
+}
+
+.play-description {
+    margin: 4px 0;
+}
+
+.play-player {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.neutral-logo {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    flex-shrink: 0;
+}
+
+.play-description.neutral {
+    color: #bb86fc;
+    font-style: italic;
+}
+
+/* Works on Chrome, Edge, and Safari */
+::-webkit-scrollbar {
+    width: 8px;  /* Adjust the width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: #222; /* Dark background for track */
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888; /* Color of scrollbar handle */
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #aaa; /* Lighten on hover */
+}
+
 .tab-button {
     padding: 0.5rem 2rem;
     cursor: pointer;

@@ -68,10 +68,18 @@
     </div>
 
     <div id="playTab" class="tab-content">
-        <h2>Play-by-Play</h2>
-        <ul id="playByPlayList">
-            <!-- We'll append items here dynamically -->
-        </ul>
+        <div class="quarter-tabs">
+            <button class="quarter-button active" data-quarter="1">Q1</button>
+            <button class="quarter-button" data-quarter="2">Q2</button>
+            <button class="quarter-button" data-quarter="3">Q3</button>
+            <button class="quarter-button" data-quarter="4">Q4</button>
+        </div>
+        <div id="playByPlayContainer">
+            <div id="quarter1" class="quarter-content active"></div>
+            <div id="quarter2" class="quarter-content"></div>
+            <div id="quarter3" class="quarter-content"></div>
+            <div id="quarter4" class="quarter-content"></div>
+        </div>
     </div>
 
     <button id="fab" class="fab">+</button>

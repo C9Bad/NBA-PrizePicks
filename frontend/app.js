@@ -17,8 +17,10 @@ const homeTeamLogo = document.getElementById("homeTeamLogo");
 const tabButtons = document.querySelectorAll(".tab-button");
 const tabContents = document.querySelectorAll(".tab-content");
 
-// Add this line to reference the play-by-play list
-const playByPlayList = document.getElementById("playByPlayList");
+const quarterButtons = document.querySelectorAll('.quarter-button');
+const quarterContents = document.querySelectorAll('.quarter-content');
+
+const teamLogoCache = new Map();
 
 async function loadPlayers(gameId) {
     try {
@@ -34,8 +36,14 @@ async function loadPlayers(gameId) {
     }
 }
 
-function getTeamLogoUrl(abbreviation) {
-    return `https://a.espncdn.com/i/teamlogos/nba/500/${abbreviation}.png`;
+async function getTeamLogo(abbreviation) {
+    if (teamLogoCache.has(abbreviation)) {
+        return teamLogoCache.get(abbreviation);
+    }
+    
+    const logoUrl = `https://a.espncdn.com/i/teamlogos/nba/500/${abbreviation}.png`;
+    teamLogoCache.set(abbreviation, logoUrl);
+    return logoUrl;
 }
 
 tabButtons.forEach((btn) => {
@@ -59,36 +67,64 @@ tabButtons.forEach((btn) => {
     });
 });
 
+quarterButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+        // Remove 'active' from all buttons/contents
+        quarterButtons.forEach((b) => b.classList.remove("active"));
+        quarterContents.forEach((qc) => qc.classList.remove("active"));
+
+        // Add 'active' to the clicked button and associated content
+        btn.classList.add("active");
+        const quarter = btn.getAttribute("data-quarter");
+        document.getElementById(`quarter${quarter.charAt(0).toUpperCase() + quarter.slice(1)}`).classList.add("active");
+    });
+});
+
 // Add this function to fetch and display play-by-play data
 async function fetchPlayByPlay(gameId) {
     try {
         const res = await fetch(`http://localhost:8000/games/${gameId}/playbyplay`);
-        if (!res.ok) {
-            throw new Error("Failed to fetch play-by-play data");
-        }
+        if (!res.ok) throw new Error("Failed to fetch play-by-play data");
         const playsByQuarter = await res.json();
 
-        // Clear the existing play-by-play list
-        playByPlayList.innerHTML = "";
+        // Clear existing content
+        ['1', '2', '3', '4'].forEach(quarter => {
+            document.getElementById(`quarter${quarter}`).innerHTML = '';
+        });
 
-        // Display plays by quarter
+        // Process all quarters
         for (const quarter in playsByQuarter) {
-            const quarterHeader = document.createElement("h3");
-            quarterHeader.textContent = `Quarter ${quarter}`;
-            playByPlayList.appendChild(quarterHeader);
-
-            playsByQuarter[quarter].forEach(play => {
-                const li = document.createElement("li");
-                li.textContent = `${play.time} - ${play.description} (${play.player}, ${play.team})`;
-                playByPlayList.appendChild(li);
-            });
+            const container = document.getElementById(`quarter${quarter}`);
+            
+            for (const play of playsByQuarter[quarter]) {
+                const logoUrl = await getTeamLogo(play.team);
+                
+                const playItem = document.createElement("div");
+                playItem.className = "play-item";
+                playItem.innerHTML = `
+                    ${play.team && play.team !== "N/A" ? 
+                        `<img class="team-logo-small" src="${logoUrl}" alt="${play.team} logo">` : 
+                        `<div class="neutral-logo">🏀</div>`
+                    }
+                    <div class="play-details">
+                        <div class="play-time">${play.time}</div>
+                        <div class="play-description">${play.description}</div>
+                        ${play.player !== "N/A" ? 
+                            `<div class="play-player">${play.player}</div>` : 
+                            `<div class="play-player">Game Event</div>`
+                        }
+                    </div>
+                `;
+                
+                container.appendChild(playItem);
+            }
         }
     } catch (err) {
         console.error("Error fetching play-by-play data:", err);
     }
 }
 
-function updateGameDisplay(game) {
+async function updateGameDisplay(game) {
     // Update team names and scores
     awayTeamName.textContent = game.awayTeam;
     awayTeamScore.textContent = game.awayScore;
@@ -96,8 +132,8 @@ function updateGameDisplay(game) {
     homeTeamScore.textContent = game.homeScore;
 
     // Update logos
-    awayTeamLogo.src = getTeamLogoUrl(game.awayAbbreviation);
-    homeTeamLogo.src = getTeamLogoUrl(game.homeAbbreviation);
+    awayTeamLogo.src = await getTeamLogo(game.awayAbbreviation);
+    homeTeamLogo.src = await getTeamLogo(game.homeAbbreviation);
 
     // Update game status and time
     gameStatus.textContent = {
