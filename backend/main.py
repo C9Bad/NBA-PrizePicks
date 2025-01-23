@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from nba_api.live.nba.endpoints import scoreboard, boxscore
+from nba_api.live.nba.endpoints import scoreboard, boxscore, playbyplay
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
@@ -119,6 +119,52 @@ async def get_game_details(game_id: str):
                 "awayLeaders": g["gameLeaders"]["awayLeaders"]
             }
     return {"error": "Game not found"}
+
+# play by play
+@app.get("/games/{game_id}/playbyplay")
+async def get_play_by_play(game_id: str):
+    try:
+        # Fetch play-by-play data
+        pbp = playbyplay.PlayByPlay(game_id)
+        data = pbp.get_dict()
+
+        # Extract the play-by-play actions
+        plays = data.get("game", {}).get("actions", [])
+
+        # Initialize a dictionary to group plays by quarter
+        plays_by_quarter = {1: [], 2: [], 3: [], 4: []}
+
+        for play in plays:
+            # Extract the period (quarter) from the play
+            period = play.get("period", 1)  # Default to 1 if period is missing
+            if period not in plays_by_quarter:
+                continue  # Skip if the period is not 1, 2, 3, or 4
+
+            # Format the play data
+            minutes, seconds = play.get("clock", "N/A")[2:-1].split("M")
+            formatted_time = f"{int(minutes)}:{float(seconds):02.0f}"  # Combine into "MM:SS"
+
+            formatted_play = {
+                "time": formatted_time,  # Game clock time
+                "description": play.get("description", "N/A"),  # Play description
+                "player": play.get("playerName", "N/A"),  # Player involved
+                "team": play.get("teamTricode", "N/A"),  # Team abbreviation
+                "action_type": play.get("actionType", "N/A"),  # Type of action (e.g., shot, turnover)
+                "score": play.get("score", "N/A")  # Current score after the play
+            }
+
+            # Add the play to the corresponding quarter
+            plays_by_quarter[period].append(formatted_play)
+
+        # Reverse the plays within each quarter (newest first)
+        for quarter in plays_by_quarter:
+            plays_by_quarter[quarter].reverse()
+
+        # Return the plays grouped by quarter
+        return JSONResponse(content=plays_by_quarter)
+
+    except Exception as e:
+        return {"error": str(e)}
 
 # ---------------------------
 # 2b) GET players in a game

@@ -14,6 +14,11 @@ const gameClock = document.getElementById("gameClock");
 const gamePeriod = document.getElementById("gamePeriod");
 const awayTeamLogo = document.getElementById("awayTeamLogo");
 const homeTeamLogo = document.getElementById("homeTeamLogo");
+const tabButtons = document.querySelectorAll(".tab-button");
+const tabContents = document.querySelectorAll(".tab-content");
+
+// Add this line to reference the play-by-play list
+const playByPlayList = document.getElementById("playByPlayList");
 
 async function loadPlayers(gameId) {
     try {
@@ -33,6 +38,56 @@ function getTeamLogoUrl(abbreviation) {
     return `https://a.espncdn.com/i/teamlogos/nba/500/${abbreviation}.png`;
 }
 
+tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+        // Remove 'active' from all buttons/contents
+        tabButtons.forEach((b) => b.classList.remove("active"));
+        tabContents.forEach((tc) => tc.classList.remove("active"));
+
+        // Add 'active' to the clicked button and associated content
+        btn.classList.add("active");
+        const targetTab = btn.getAttribute("data-tab");
+        document.getElementById(targetTab).classList.add("active");
+
+        // Fetch play-by-play data when the Play-by-Play tab is clicked
+        if (targetTab === "playTab") {
+            const gameId = gameSelect.value;
+            if (gameId) {
+                fetchPlayByPlay(gameId);
+            }
+        }
+    });
+});
+
+// Add this function to fetch and display play-by-play data
+async function fetchPlayByPlay(gameId) {
+    try {
+        const res = await fetch(`http://localhost:8000/games/${gameId}/playbyplay`);
+        if (!res.ok) {
+            throw new Error("Failed to fetch play-by-play data");
+        }
+        const playsByQuarter = await res.json();
+
+        // Clear the existing play-by-play list
+        playByPlayList.innerHTML = "";
+
+        // Display plays by quarter
+        for (const quarter in playsByQuarter) {
+            const quarterHeader = document.createElement("h3");
+            quarterHeader.textContent = `Quarter ${quarter}`;
+            playByPlayList.appendChild(quarterHeader);
+
+            playsByQuarter[quarter].forEach(play => {
+                const li = document.createElement("li");
+                li.textContent = `${play.time} - ${play.description} (${play.player}, ${play.team})`;
+                playByPlayList.appendChild(li);
+            });
+        }
+    } catch (err) {
+        console.error("Error fetching play-by-play data:", err);
+    }
+}
+
 function updateGameDisplay(game) {
     // Update team names and scores
     awayTeamName.textContent = game.awayTeam;
@@ -50,7 +105,7 @@ function updateGameDisplay(game) {
         2: "🟢 LIVE",
         3: "🏁 Final"
     }[game.status] || "Unknown";
-    gameClock.textContent = game.gameClock || '-';
+    gameClock.textContent = game.gameClock || 'Ended';
     gamePeriod.textContent = `${game.period}Q` || '-';
 }
 
@@ -89,6 +144,11 @@ async function loadGames() {
             if (selectedGame) {
                 updateGameDisplay(selectedGame);
                 await loadPlayers(selectedGame.gameId);
+
+                // Fetch play-by-play data if the Play-by-Play tab is active
+                if (document.querySelector('[data-tab="playTab"]').classList.contains("active")) {
+                    fetchPlayByPlay(selectedGame.gameId);
+                }
             }
         });
 

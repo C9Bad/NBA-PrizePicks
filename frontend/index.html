@@ -30,39 +30,49 @@
         </div>
     </div>
 
-    <div>
-        <label for="gameSelect">Select Game:</label>
-        <select id="gameSelect"></select>
+    <div style="display: inline-block;">
+        <select id="gameSelect" style="display: inline-block;"></select>
     </div>
 
-    <form id="betForm">
-        <div>
-            <label>Player Name:</label>
-            <select id="playerSelect" required></select>
-        </div>
+    <div class="tabs">
+        <button class="tab-button active" data-tab="picksTab">Picks</button>
+        <button class="tab-button" data-tab="playTab">Play-by-Play</button>
+    </div>
 
-        <div>
-            <label>Bet Type:</label>
-            <select id="betType" required>
-                <option value="points">Points</option>
-                <option value="assists">Assists</option>
-                <option value="rebounds">Rebounds</option>
-                <option value="points+assists">Points + Assists</option>
-                <option value="points+rebounds">Points + Rebounds</option>
-                <option value="assists+rebounds">Assists + Rebounds</option>
-                <option value="points+assists+rebounds">Points + Assists + Rebounds</option>
-            </select>
-        </div>
+    <div id="picksTab" class="tab-content active">
+        <form id="betForm">
+            <div>
+                <label>Player Name:</label>
+                <select id="playerSelect" required></select>
+            </div>
+            <div>
+                <label>Bet Type:</label>
+                <select id="betType" required>
+                    <option value="points">Points</option>
+                    <option value="assists">Assists</option>
+                    <option value="rebounds">Rebounds</option>
+                    <option value="points+assists">Points + Assists</option>
+                    <option value="points+rebounds">Points + Rebounds</option>
+                    <option value="assists+rebounds">Assists + Rebounds</option>
+                    <option value="points+assists+rebounds">Points + Assists + Rebounds</option>
+                </select>
+            </div>
+            <div>
+                <label>Target Line:</label>
+                <input type="number" id="targetInput" step="0.5" placeholder="32.5" required />
+            </div>
+            <button type="submit">Start Tracking</button>
+        </form>
 
-        <div>
-            <label>Target Line:</label>
-            <input type="number" name="target" step="0.5" placeholder="32.5" required />
-        </div>
+        <div id="trackerQueue"></div>
+    </div>
 
-        <button type="submit">Start Tracking</button>
-    </form>
-
-    <div id="trackerQueue"></div>
+    <div id="playTab" class="tab-content">
+        <h2>Play-by-Play</h2>
+        <ul id="playByPlayList">
+            <!-- We'll append items here dynamically -->
+        </ul>
+    </div>
 
     <button id="fab" class="fab">+</button>
     <div class="overlay"></div>

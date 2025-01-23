@@ -76,6 +76,42 @@ form {
     background: #cf6679;
 }
 
+.tabs {
+    margin-top: 1rem;
+    display: flex;
+    border: 3px solid #ccc;
+}
+
+.tab-button {
+    padding: 0.5rem 2rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--text);
+    border: 3px solid transparent;
+    font-size: 1rem;
+}
+
+.tab-button.active {
+    border-bottom: 6px solid #007bff;
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+    margin-top: 1rem;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.button-connect {
+    margin-left: 0.5rem;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+}
+
 .team-players {
     display: grid;
     grid-template-columns: 1fr 1fr;
