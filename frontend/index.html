@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>NBA Bet Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <h1>🏀 NBA PrizePicks Watcher</h1>
+
+    <div>
+        <label for="gameSelect">Select Game:</label>
+        <select id="gameSelect"></select>
+    </div>
+
+    <div id="teamDisplay" style="display: none;">
+        <h3>Teams & Players</h3>
+        <div class="team-players">
+            <div class="player-list" id="awayPlayers"></div>
+            <div class="player-list" id="homePlayers"></div>
+        </div>
+    </div>
+
+    <form id="betForm">
+        <div>
+            <label>Player Name:</label>
+            <select id="playerSelect" required></select>
+        </div>
+
+        <div>
+            <label>Bet Type:</label>
+            <select id="betType" required>
+                <option value="points">Points</option>
+                <option value="assists">Assists</option>
+                <option value="rebounds">Rebounds</option>
+                <option value="points+assists">Points + Assists</option>
+                <option value="points+rebounds">Points + Rebounds</option>
+                <option value="assists+rebounds">Assists + Rebounds</option>
+                <option value="points+assists+rebounds">Points + Assists + Rebounds</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Target Line:</label>
+            <input type="number" name="target" step="0.5" placeholder="32.5" required />
+        </div>
+
+        <button type="submit">Start Tracking</button>
+    </form>
+
+    <div id="trackerQueue"></div>
+
+    <button id="fab" class="fab">+</button>
+    <div class="overlay"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

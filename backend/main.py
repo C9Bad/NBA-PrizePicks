@@ -40,6 +40,9 @@ async def get_ongoing_games():
 
     games_list = []
     for g in games_data:
+        if g["gameStatus"] == 0:
+            continue
+
         # Parse gameEt to check if it matches scoreboard date
         try:
             game_time_et = datetime.fromisoformat(g["gameEt"].replace("Z", "")).astimezone(eastern)
