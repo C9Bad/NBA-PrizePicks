@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from nba_api.live.nba.endpoints import scoreboard, boxscore, playbyplay
+from nba_api.stats.static import players
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
+import math
 
 app = FastAPI()
 
@@ -55,6 +57,7 @@ async def get_ongoing_games():
             "gameId": g["gameId"],
             "homeTeam": g["homeTeam"]["teamName"],
             "awayTeam": g["awayTeam"]["teamName"],
+            "statusText": g["gameStatusText"],
             "homeAbbreviation": g["homeTeam"]["teamTricode"],  # e.g. "BOS"
             "awayAbbreviation": g["awayTeam"]["teamTricode"],  # e.g. "LAL"
             "status": g["gameStatus"],
@@ -96,6 +99,25 @@ def get_player_stats(player_name: str, game_id: str):
                 "rebounds": p["statistics"].get("rebounds", 0)
             }
     return None
+
+# Get Images!
+@app.get("/player/{player_name}/image")
+async def get_player_image(player_name: str):
+    # Find player ID
+    nba_players = players.find_players_by_full_name(player_name)
+    if not nba_players:
+        return {"imageUrl": None}
+    
+    # Get first matching player
+    player_id = nba_players[0]['id']
+    
+    # ESPN image URL pattern (works for most active players)
+    image_url = f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png"
+    
+    # Alternative if ESPN doesn't work:
+    # image_url = f"https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png"
+    
+    return {"imageUrl": image_url}
 
 # Add these new endpoints
 # ---------------------------
@@ -213,7 +235,7 @@ def check_bet(player_name: str, bet_type: str, target_value: float, game_id: str
         "bet_type": bet_type,
         "current_total": total,
         "target": target_value,
-        "progress": "On Track ✅" if on_track else f"Needs {remaining:.1f} more"
+        "progress": "On Track ✅" if on_track else f"Needs {math.ceil(remaining)} more"
     }
 
 # ---------------------------
@@ -231,8 +253,9 @@ async def track_bet(bet: Bet):
       }
     Returns JSON with bet status.
     """
+    
     result = check_bet(bet.player, bet.bet_type, bet.target, bet.game_id)
-    return result
+    return JSONResponse(content=result)
 
 # ---------------------------
 # 6) Basic homepage route (optional)

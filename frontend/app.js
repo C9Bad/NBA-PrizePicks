@@ -21,6 +21,7 @@ const quarterButtons = document.querySelectorAll('.quarter-button');
 const quarterContents = document.querySelectorAll('.quarter-content');
 
 const teamLogoCache = new Map();
+const playerImageCache = new Map();
 
 async function loadPlayers(gameId) {
     try {
@@ -144,7 +145,15 @@ async function updateGameDisplay(game) {
         2: "🟢 LIVE",
         3: "🏁 Final"
     }[game.status] || "Unknown";
-    gameClock.textContent = game.gameClock || 'Ended';
+
+    if (game.status === 1) { // Scheduled
+        gameClock.textContent = game.statusText || game.gameTimeET;
+    } else if (game.status === 3) { // Final
+        gameClock.textContent = "Ended";
+    } else { // Live game
+        gameClock.textContent = game.gameClock || 'Live';
+    }
+
     gamePeriod.textContent = `${game.period}Q` || '-';
 }
 
@@ -162,7 +171,7 @@ async function loadGames() {
             const option = document.createElement("option");
             option.value = g.gameId;
             const statusText = {
-                1: "Scheduled",
+                1: `⏰ ${g.statusText}`,  // Scheduled with clock icon
                 2: "🟢 LIVE",
                 3: "🏁 Final"
             }[g.status] || "Unknown";
@@ -196,51 +205,138 @@ async function loadGames() {
     }
 }
 
-function createTrackerElement(betData) {
+async function createTrackerElement(betData) {
+    // Handle API errors first
+    if (betData.error) {
+        const errorCard = document.createElement("div");
+        errorCard.className = "tracker-card error";
+        errorCard.textContent = "Failed to track bet. Please try again.";
+        return errorCard;
+    }
+
     const card = document.createElement("div");
     card.className = "tracker-card";
-    const betTypeDisplay = betData.bet_type.split('+')
-        .map(stat => stat.charAt(0).toUpperCase() + stat.slice(1))
-        .join(' + ');
 
-    card.innerHTML = `
-        <div>
-            <h3>${betData.player}</h3>
-            <div class="status-indicator ${betData.status === 'Active' ? 'live' : 'benched'}">
-                ${betData.status}
+    try {
+        // Fetch player image
+        let imageUrl;
+        if (playerImageCache.has(betData.player)) {
+            imageUrl = playerImageCache.get(betData.player);
+        } else {
+            const controller = new AbortController();
+            card._imageRequestAbortController = controller;
+            
+            const playerImageRes = await fetch(
+                `http://localhost:8000/player/${encodeURIComponent(betData.player)}/image`,
+                { signal: controller.signal }
+            );
+            const playerImageData = await playerImageRes.json();
+            imageUrl = playerImageData.imageUrl;
+            
+            // Cache even if no image found to prevent repeated requests
+            playerImageCache.set(betData.player, imageUrl || null);
+        }
+        
+        const betTypeDisplay = betData.bet_type.split('+')
+            .map(stat => stat.charAt(0).toUpperCase() + stat.slice(1))
+            .join(' + ');
+
+            card.innerHTML = `
+            <div class="tracker-card-container">
+                <div class="player-image-container">
+                    ${imageUrl ? 
+                        `<img class="player-image" src="${imageUrl}" alt="${betData.player}">` : 
+                        `<div class="player-image placeholder">🏀</div>`
+                    }
+                </div>
+                
+                <div class="player-info">
+                    <div class="player-name">${betData.player}</div>
+                    <div class="team-position">NBA ${betData.teamAbbreviation} - ${betData.position}</div>
+                    <div class="game-info">${betData.gameDate} vs ${betData.opponent}</div>
+                </div>
+        
+                <div class="progress-section">
+                    <div class="progress-labels">
+                        <span>${betData.current_total.toFixed(1)}</span>
+                        <span>${betData.target}</span>
+                    </div>
+                    <div class="progress-bar ${betData.current_total >= betData.target ? 'exceeded' : 'below'}">
+                        <div class="progress-fill" 
+                            style="width: ${Math.min((betData.current_total / betData.target) * 100, 100)}%">
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="bet-status">
+                    <div class="more-label">MORE</div>
+                    <div class="target-line">${betData.target} ${betData.bet_type.toUpperCase()}</div>
+                </div>
             </div>
-            <div>${betTypeDisplay} | Target: ${betData.target}</div>
-        </div>
-        <div class="progress-bar">
-            <div class="progress-fill" style="width: ${Math.min((betData.current_total / betData.target) * 100, 100)}%"></div>
-        </div>
-        <div>
-            <div>${betData.current_total.toFixed(1)}/${betData.target}</div>
-            <div>${betData.progress}</div>
-        </div>
-        <button class="remove-btn">×</button>
-    `;
+            <button class="remove-btn">×</button>
+        `;
+    } catch (err) {
+        console.error("Error creating tracker card:", err);
+        card.innerHTML = `
+            <div class="error">
+                Failed to load tracker data for ${betData.player}
+            </div>
+        `;
+    }
 
     card.querySelector('.remove-btn').addEventListener('click', () => {
-        card.remove();
+        // Clear from active trackers
         const intervalId = activeTrackers.get(card);
-        if (intervalId) clearInterval(intervalId);
-        activeTrackers.delete(card);
+        if (intervalId) {
+            clearInterval(intervalId);
+            activeTrackers.delete(card);
+        }
+        
+        // Clear cached image if this is the last instance
+        setTimeout(() => { // Delay to ensure DOM update
+            const hasOtherInstances = [...trackerQueue.children].some(child => 
+                child.querySelector('h3')?.textContent === betData.player
+            );
+            if (!hasOtherInstances) {
+                playerImageCache.delete(betData.player);
+            }
+        }, 0);
+    
+        // Remove from DOM
+        card.remove();
     });
 
     return card;
 }
 
 async function addTracker(betData) {
-    const card = createTrackerElement(await fetchBetStatus(betData));
-    trackerQueue.appendChild(card);
+    try {
+        const initialData = await fetchBetStatus(betData);
+        let card = await createTrackerElement(initialData);
+        trackerQueue.appendChild(card);
 
-    const intervalId = setInterval(async () => {
-        const newData = await fetchBetStatus(betData);
-        card.replaceWith(createTrackerElement(newData));
-    }, 5000);
+        // Store the bet data with the card
+        card.betData = betData;  // Add this line
 
-    activeTrackers.set(card, intervalId);
+        const intervalId = setInterval(async () => {
+            try {
+                const newData = await fetchBetStatus(betData);
+                const newCard = await createTrackerElement(newData);
+                
+                // Update the DOM and references
+                card.replaceWith(newCard);
+                activeTrackers.delete(card);
+                activeTrackers.set(newCard, intervalId);
+                card = newCard; // Update the card reference
+            } catch (err) {
+                console.error("Update failed:", err);
+            }
+        }, 5000);
+
+        activeTrackers.set(card, intervalId);
+    } catch (err) {
+        alert("Failed to start tracking. Check console for details.");
+    }
 }
 
 async function fetchBetStatus(betData) {
@@ -272,26 +368,40 @@ overlay.addEventListener('click', () => {
 });
 
 // Form submission handler
-betForm.addEventListener("submit", (e) => {
+betForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(betForm);
 
-    const betData = {
-        player: formData.get("player"),
-        bet_type: document.getElementById("betType").value,
-        target: parseFloat(formData.get("target")),
-        game_id: gameSelect.value
-    };
-
-    if (!betData.game_id) {
-        alert("Please select a valid game.");
+    // Validate target input
+    const target = parseFloat(formData.get("target"));
+    if (isNaN(target) || target <= 0) {
+        alert("Please enter a valid target number greater than 0.");
         return;
     }
 
-    addTracker(betData);
-    betForm.reset();
-    betForm.classList.remove('visible');
-    overlay.classList.remove('visible');
+    // Prepare bet data
+    const betData = {
+        player: formData.get("player"),
+        bet_type: formData.get("betType"),
+        target: target,
+        game_id: gameSelect.value
+    };
+
+    // Validate all fields
+    if (!betData.player || !betData.bet_type || !betData.game_id) {
+        alert("Please fill in all required fields.");
+        return;
+    }
+
+    try {
+        await addTracker(betData);
+        betForm.reset();
+        betForm.classList.remove('visible');
+        overlay.classList.remove('visible');
+    } catch (err) {
+        alert("Failed to create tracker. Please try again.");
+        console.error("Submission error:", err);
+    }
 });
 
 // Initial load

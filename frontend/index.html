@@ -43,11 +43,11 @@
         <form id="betForm">
             <div>
                 <label>Player Name:</label>
-                <select id="playerSelect" required></select>
+                <select id="playerSelect" name="player" required></select>
             </div>
             <div>
                 <label>Bet Type:</label>
-                <select id="betType" required>
+                <select id="betType" name="betType" required>
                     <option value="points">Points</option>
                     <option value="assists">Assists</option>
                     <option value="rebounds">Rebounds</option>
@@ -59,7 +59,7 @@
             </div>
             <div>
                 <label>Target Line:</label>
-                <input type="number" id="targetInput" step="0.5" placeholder="32.5" required />
+                <input type="number" id="targetInput" name="target" step="0.5" placeholder="32.5" required />
             </div>
             <button type="submit">Start Tracking</button>
         </form>
