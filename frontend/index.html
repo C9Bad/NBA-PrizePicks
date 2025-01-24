@@ -19,7 +19,13 @@
 
         <div class="game-details">
             <div class="game-status" id="gameStatus">-</div>
-            <div class="game-clock" id="gameClock">-</div>
+            <div class="game-clock-container">
+                <!-- Add wrapper span for width measurement -->
+                <div class="game-clock" id="gameClock">
+                    <span id="clockText">-</span>
+                </div>
+                <div class="pulsing-line"></div>
+            </div>
             <div class="game-period" id="gamePeriod">-</div>
         </div>
 

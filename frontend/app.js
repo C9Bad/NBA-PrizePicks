@@ -128,6 +128,20 @@ async function fetchPlayByPlay(gameId) {
     }
 }
 
+async function updateGameData() {
+    try {
+        const res = await fetch("http://localhost:8000/games");
+        const games = await res.json();
+        const selectedGameId = gameSelect.value;
+        const selectedGame = games.find(g => g.gameId === selectedGameId);
+        if (selectedGame) {
+            updateGameDisplay(selectedGame);
+        }
+    } catch (err) {
+        console.error("Error updating game data:", err);
+    }
+}
+
 async function updateGameDisplay(game) {
     // Update team names and scores
     awayTeamName.textContent = game.awayTeam;
@@ -151,7 +165,10 @@ async function updateGameDisplay(game) {
     } else if (game.status === 3) { // Final
         gameClock.textContent = "Ended";
     } else { // Live game
-        gameClock.textContent = game.gameClock || 'Live';
+        if (game.gameClock == "00:00")
+            gameClock.textCotent = "Paused";
+        else 
+            gameClock.textContent = game.gameClock || 'Live';
     }
 
     gamePeriod.textContent = `${game.period}Q` || '-';
@@ -199,7 +216,7 @@ async function loadGames() {
                 }
             }
         });
-
+        setInterval(updateGameData, 1000);
     } catch (err) {
         console.error("Error fetching games:", err);
     }
@@ -238,15 +255,23 @@ async function createTrackerElement(betData) {
         }
         
         const betTypeDisplay = betData.bet_type.split('+')
-            .map(stat => stat.charAt(0).toUpperCase() + stat.slice(1))
-            .join(' + ');
+        .map(stat => {
+            // Map server response to proper display names
+            const displayNames = {
+                points: 'Pts',
+                assists: 'Ast',
+                rebounds: 'Reb'
+            };
+            return displayNames[stat] || stat.charAt(0).toUpperCase() + stat.slice(1);
+        })
+        .join('+');
 
             card.innerHTML = `
             <div class="tracker-card-container">
                 <div class="player-image-container">
                     ${imageUrl ? 
                         `<img class="player-image" src="${imageUrl}" alt="${betData.player}">` : 
-                        `<div class="player-image placeholder">🏀</div>`
+                        `<div class="player-image placeholder">?</div>`
                     }
                 </div>
                 
@@ -259,7 +284,7 @@ async function createTrackerElement(betData) {
                 <div class="progress-section">
                     <div class="progress-labels">
                         <span>${betData.current_total.toFixed(1)}</span>
-                        <span>${betData.target}</span>
+                        <span>${betData.target}</span> <!-- Use display name -->
                     </div>
                     <div class="progress-bar ${betData.current_total >= betData.target ? 'exceeded' : 'below'}">
                         <div class="progress-fill" 
@@ -270,7 +295,7 @@ async function createTrackerElement(betData) {
         
                 <div class="bet-status">
                     <div class="more-label">MORE</div>
-                    <div class="target-line">${betData.target} ${betData.bet_type.toUpperCase()}</div>
+                    <div class="target-line">${betData.target} ${betTypeDisplay.toUpperCase()}</div>
                 </div>
             </div>
             <button class="remove-btn">×</button>

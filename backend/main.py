@@ -1,3 +1,7 @@
+#Box Score
+#show team in the pick
+#show like c sg etc benched
+#better play by play
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -36,16 +40,11 @@ async def get_ongoing_games():
     data = sb.get_dict()
     games_data = data["scoreboard"]["games"]
     
-    # Use the scoreboard's gameDate instead of current date
     scoreboard_date = data["scoreboard"]["gameDate"]
     eastern = pytz.timezone("US/Eastern")
 
     games_list = []
     for g in games_data:
-        # if g["gameStatus"] != 2:
-        #     return
-
-        # Parse gameEt to check if it matches scoreboard date
         try:
             game_time_et = datetime.fromisoformat(g["gameEt"].replace("Z", "")).astimezone(eastern)
             if game_time_et.date().isoformat() != scoreboard_date:
@@ -58,14 +57,14 @@ async def get_ongoing_games():
             "homeTeam": g["homeTeam"]["teamName"],
             "awayTeam": g["awayTeam"]["teamName"],
             "statusText": g["gameStatusText"],
-            "homeAbbreviation": g["homeTeam"]["teamTricode"],  # e.g. "BOS"
-            "awayAbbreviation": g["awayTeam"]["teamTricode"],  # e.g. "LAL"
+            "homeAbbreviation": g["homeTeam"]["teamTricode"],
+            "awayAbbreviation": g["awayTeam"]["teamTricode"],
             "status": g["gameStatus"],
             "gameTimeET": game_time_et.strftime("%I:%M %p"),
             "homeScore": g["homeTeam"]["score"],
             "awayScore": g["awayTeam"]["score"],
             "period": g["period"],
-            "gameClock": g["gameClock"]
+            "gameClock": parse_iso_duration(g["gameClock"])  # Updated here
         })
 
     status_priority = {2: 0, 3: 1, 1: 2}
@@ -81,24 +80,58 @@ def get_player_stats(player_name: str, game_id: str):
     try:
         box = boxscore.BoxScore(game_id=game_id)
         data = box.get_dict()
-    except:
+    except Exception as e:
+        print(f"Error fetching box score: {e}")
         return None
 
-    home_players = data["game"]["homeTeam"]["players"]
-    away_players = data["game"]["awayTeam"]["players"]
-    all_players = home_players + away_players
+    # Combine all players
+    all_players = (
+        data["game"]["homeTeam"]["players"] + 
+        data["game"]["awayTeam"]["players"]
+    )
 
+    # Normalize names for comparison
+    target_name = player_name.strip().lower()
+    
     for p in all_players:
-        if player_name.lower() in p["name"].lower():
-            # Fix: Use .get() with default value
+        # Handle both "firstName lastName" and "lastName, firstName" formats
+        full_name = p["name"]
+        if ", " in full_name:
+            last, first = full_name.split(", ", 1)
+            normalized_name = f"{first} {last}".lower()
+        else:
+            normalized_name = full_name.lower()
+
+        # Check for exact match after normalization
+        if normalized_name == target_name:
             return {
-                "name": p["name"],
-                "active": not p.get("notPlaying", False),
+                "name": full_name,
                 "points": p["statistics"].get("points", 0),
                 "assists": p["statistics"].get("assists", 0),
-                "rebounds": p["statistics"].get("rebounds", 0)
+                "rebounds": p["statistics"].get("reboundsTotal", 0)  # Changed to reboundsTotal
             }
+    
+    print(f"Player {player_name} not found in game {game_id}")
     return None
+
+def parse_iso_duration(iso_duration):
+    if not iso_duration or iso_duration == "N/A":
+        return "N/A"
+    
+    try:
+        minutes = 0
+        seconds = 0
+        
+        if 'M' in iso_duration:
+            minutes_part = iso_duration.split('M')[0].split('T')[-1]
+            minutes = int(minutes_part)
+        if 'S' in iso_duration:
+            seconds_part = iso_duration.split('S')[0].split('M')[-1]
+            seconds = int(float(seconds_part))
+            
+        return f"{minutes:02d}:{seconds:02d}"
+    except:
+        return "N/A"
 
 # Get Images!
 @app.get("/player/{player_name}/image")
@@ -210,6 +243,9 @@ async def get_game_players(game_id: str):
 # ---------------------------
 def check_bet(player_name: str, bet_type: str, target_value: float, game_id: str):
     stats = get_player_stats(player_name, game_id)
+
+    print(f"Stats for {player_name}: {stats}")
+
     if not stats:
         return {
             "player": player_name,
@@ -218,7 +254,7 @@ def check_bet(player_name: str, bet_type: str, target_value: float, game_id: str
         }
 
     total = 0
-    if "pts" in bet_type:
+    if "points" in bet_type:
         total += stats["points"]
     if "assists" in bet_type:
         total += stats["assists"]
@@ -231,7 +267,6 @@ def check_bet(player_name: str, bet_type: str, target_value: float, game_id: str
     return {
         "player": stats["name"],
         "game_id": game_id,
-        "status": "Active" if stats["active"] else "Benched",
         "bet_type": bet_type,
         "current_total": total,
         "target": target_value,
